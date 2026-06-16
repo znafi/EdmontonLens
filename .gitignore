@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Data & models (large/regenerated artifacts)
+data/*
+!data/.gitkeep
+models/*
+!models/.gitkeep
+
+# Credentials
+service-account.json
+*.pem
+
+# Node / Next.js
+node_modules/
+frontend/.next/
+frontend/out/
+frontend/.vercel/
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<datasource name='edmonton_lens_transit' version='18.1'>
+  <connection class='postgres'
+    dbname='edmonton_lens'
+    port='5432'
+    server='localhost'
+    username='postgres'>
+  </connection>
+  <column datatype='date'    name='[service_date]'   role='dimension' type='ordinal'/>
+  <column datatype='real'    name='[on_time_rate]'   role='measure'   type='quantitative'/>
+  <column datatype='string'  name='[route_id]'       role='dimension' type='nominal'/>
+  <column datatype='real'    name='[avg_delay_mins]' role='measure'   type='quantitative'/>
+  <column datatype='integer' name='[total_trips]'    role='measure'   type='quantitative'/>
+  <column datatype='integer' name='[delayed_trips]'  role='measure'   type='quantitative'/>
+</datasource>
