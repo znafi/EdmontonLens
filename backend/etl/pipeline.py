@@ -34,6 +34,7 @@ from backend.etl.loaders import load_to_bigquery, load_to_local_db
 from backend.etl.loaders.mysql_loader import load_to_mysql
 from backend.etl.loaders.sqlserver_loader import load_to_sqlserver
 from backend.etl.transformers import (
+    assign_neighbourhood,
     build_neighbourhood_kpis,
     transform_neighbourhoods,
     transform_parks,
@@ -86,9 +87,17 @@ def _transform_all(raw: dict[str, Any]) -> dict[str, pd.DataFrame]:
     stops = transform_stops(raw["raw_stops"])
     parks = transform_parks(raw["raw_parks"])
     waste = transform_waste(raw["raw_waste"])
-    performance = transform_performance(raw["gtfs"])
-    stop_delays = transform_stop_delays(raw["gtfs"])
+    performance = transform_performance(raw["gtfs"], real_routes=routes)
+    stop_delays = transform_stop_delays(raw["gtfs"], real_stops=stops, real_routes=routes)
     neighbourhoods = transform_neighbourhoods(raw["boundaries"])
+
+    # Spatial enrichment: assign neighbourhood_id to stops and parks using
+    # point-in-polygon against the real boundary GeoJSON. Datasets like the
+    # GTFS stops and the parks catalog don't carry a neighbourhood field, so
+    # this is what unlocks accurate per-neighbourhood KPI aggregation.
+    stops = assign_neighbourhood(stops, neighbourhoods, lat_col="stop_lat", lon_col="stop_lon")
+    parks = assign_neighbourhood(parks, neighbourhoods)
+
     kpis = build_neighbourhood_kpis(neighbourhoods, stops, parks, waste, performance)
     return {
         "transit_routes": routes,

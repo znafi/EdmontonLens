@@ -9,8 +9,26 @@ import pandas as pd
 
 
 def transform_parks(raw: pd.DataFrame) -> pd.DataFrame:
-    """Clean raw parks data into the ``parks`` schema and normalise amenities."""
+    """Clean raw parks data into the ``parks`` schema and normalise amenities.
+
+    Handles two source schemas:
+      * Legacy synthetic schema (park_id, park_name, ...)
+      * Edmonton Open Data "Parks" dataset (id, common_name, class, area, ...)
+    """
     df = raw.copy()
+
+    # Map Edmonton Open Data field names to our internal schema.
+    rename_map = {
+        "id": "park_id",
+        "common_name": "park_name",
+        "name": "park_name",
+        "class": "park_type",
+        "area": "area_sqm",
+    }
+    for src, dst in rename_map.items():
+        if src in df.columns and dst not in df.columns:
+            df = df.rename(columns={src: dst})
+
     columns = [
         "park_id",
         "park_name",
@@ -30,7 +48,8 @@ def transform_parks(raw: pd.DataFrame) -> pd.DataFrame:
     out["latitude"] = pd.to_numeric(out["latitude"], errors="coerce")
     out["longitude"] = pd.to_numeric(out["longitude"], errors="coerce")
     out["amenities"] = out["amenities"].apply(_normalise_amenities)
-    out = out.drop_duplicates(subset=["park_id"])
+    out = out.dropna(subset=["park_id"]).drop_duplicates(subset=["park_id"])
+    out = out[out["park_id"] != "nan"]
     out["ingested_at"] = datetime.utcnow()
     _require_columns(out, columns)
     return out.reset_index(drop=True)

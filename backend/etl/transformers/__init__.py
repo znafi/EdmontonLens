@@ -11,6 +11,7 @@ from backend.etl.transformers.transit import (
     transform_stop_delays,
     transform_stops,
 )
+from backend.etl.transformers.spatial import assign_neighbourhood
 from backend.etl.transformers.waste import transform_waste
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "transform_waste",
     "transform_neighbourhoods",
     "build_neighbourhood_kpis",
+    "assign_neighbourhood",
 ]

@@ -15,17 +15,21 @@ def transform_neighbourhoods(feature_collection: dict[str, Any]) -> pd.DataFrame
     rows: list[dict[str, Any]] = []
     for feature in feature_collection.get("features", []):
         props = feature.get("properties", {})
+        # Socrata GeoJSON truncates field names to 10 characters, so we accept
+        # both the full and the truncated variants.
         nid = str(
             props.get("neighbourhood_id")
             or props.get("neighbourhood_number")
+            or props.get("neighbourh")
             or props.get("OBJECTID")
             or props.get("id")
             or len(rows) + 1
         )
         name = (
             props.get("neighbourhood_name")
-            or props.get("name")
             or props.get("descriptive_name")
+            or props.get("descriptiv")
+            or props.get("name")
             or f"Neighbourhood {nid}"
         )
         rows.append(

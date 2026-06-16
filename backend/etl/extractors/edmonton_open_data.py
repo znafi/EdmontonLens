@@ -18,12 +18,16 @@ from backend.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Socrata resource identifiers for each dataset on data.edmonton.ca.
+# Current Socrata resource identifiers on data.edmonton.ca (verified 2026-06).
+#   transit_routes  -> ETS Bus Schedule GTFS Data Feed - Routes
+#   transit_stops   -> ETS Bus Schedule GTFS Data Feed - Stops (has stop_id)
+#   parks           -> Parks (full attribute list with geometry)
+#   waste_schedules -> Waste/Recycling/Garbage Collection Schedule
 RESOURCES: dict[str, str] = {
-    "transit_routes": "j5kf-rh43",
-    "transit_stops": "5sn6-mznv",
-    "parks": "p8my-em7p",
-    "waste_schedules": "tqsr-x3cn",
+    "transit_routes": "d577-xky7",
+    "transit_stops": "4vt2-8zrq",
+    "parks": "gdd9-eqv9",
+    "waste_schedules": "vkpg-2sa6",
 }
 
 DEFAULT_LIMIT = 5000

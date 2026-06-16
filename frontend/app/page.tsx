@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bus, MessageSquare, MapPin } from "lucide-react";
+import { Bus, MessageSquare, MapPin, Trash2 } from "lucide-react";
 
 const FEATURES = [
   {
@@ -9,6 +9,14 @@ const FEATURES = [
       "See which routes are running late today, which stops are worst for delays, and what the model thinks will happen tomorrow morning.",
     icon: Bus,
     accent: "bg-blue-50 text-blue-600",
+  },
+  {
+    href: "/waste",
+    title: "Waste",
+    description:
+      "Find out when garbage, recycling, and organics get picked up in any neighbourhood. Searchable, no PDF schedules needed.",
+    icon: Trash2,
+    accent: "bg-amber-50 text-amber-600",
   },
   {
     href: "/ask",
@@ -59,7 +67,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="grid gap-6 md:grid-cols-3">
+      <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {FEATURES.map((f) => {
           const Icon = f.icon;
           return (

@@ -52,11 +52,22 @@ def transform_stops(raw: pd.DataFrame) -> pd.DataFrame:
     return out.reset_index(drop=True)
 
 
-def transform_performance(gtfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    """Compute daily on-time performance per route over the last 30 days."""
+def transform_performance(
+    gtfs: dict[str, pd.DataFrame],
+    real_routes: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Compute daily on-time performance per route over the last 30 days.
+
+    Prefers real Socrata route IDs (passed via ``real_routes``) over GTFS
+    synthetic IDs when the bulk GTFS feed isn't reachable.
+    """
     rng = np.random.default_rng(_RNG_SEED)
     trips = gtfs["trips"]
-    route_ids = sorted(trips["route_id"].astype(str).unique())
+    gtfs_routes = sorted(trips["route_id"].astype(str).unique())
+    if real_routes is not None and not real_routes.empty:
+        route_ids = sorted(real_routes["route_id"].astype(str).unique())
+    else:
+        route_ids = gtfs_routes
     trips_per_route = trips.groupby("route_id").size().to_dict()
 
     today = datetime.utcnow().date()
@@ -88,19 +99,45 @@ def transform_performance(gtfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return out
 
 
-def transform_stop_delays(gtfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    """Compute daily average delay per stop/route over the last 30 days."""
+def transform_stop_delays(
+    gtfs: dict[str, pd.DataFrame],
+    real_stops: pd.DataFrame | None = None,
+    real_routes: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Compute daily average delay per stop/route over the last 30 days.
+
+    When real Socrata stops/routes are provided and the GTFS bulk feed has
+    fallen back to synthetic data, we generate the (stop, route) pairs from
+    the real data instead so the delay records reference actual stop IDs.
+    """
     rng = np.random.default_rng(_RNG_SEED + 1)
-    stop_times = gtfs["stop_times"].merge(
-        gtfs["trips"][["trip_id", "route_id"]], on="trip_id", how="left"
-    )
-    pairs = (
-        stop_times[["stop_id", "route_id"]]
-        .dropna()
-        .drop_duplicates()
-        .astype(str)
-        .reset_index(drop=True)
-    )
+
+    gtfs_is_synthetic = len(gtfs["stops"]) < 30  # heuristic
+    if (
+        gtfs_is_synthetic
+        and real_stops is not None
+        and real_routes is not None
+        and not real_stops.empty
+        and not real_routes.empty
+    ):
+        # Sample a manageable subset so the cross-product stays tractable.
+        sample_stops = real_stops["stop_id"].astype(str).head(200).tolist()
+        sample_routes = real_routes["route_id"].astype(str).head(15).tolist()
+        pairs = pd.DataFrame(
+            [(s, r) for s in sample_stops for r in sample_routes],
+            columns=["stop_id", "route_id"],
+        )
+    else:
+        stop_times = gtfs["stop_times"].merge(
+            gtfs["trips"][["trip_id", "route_id"]], on="trip_id", how="left"
+        )
+        pairs = (
+            stop_times[["stop_id", "route_id"]]
+            .dropna()
+            .drop_duplicates()
+            .astype(str)
+            .reset_index(drop=True)
+        )
     today = datetime.utcnow().date()
     rows: list[dict] = []
     for day_offset in range(_HISTORY_DAYS):

@@ -45,6 +45,7 @@ class PerformancePointOut(BaseModel):
 
 class StopDelayOut(BaseModel):
     stop_id: str
+    stop_name: str | None = None
     avg_delay_mins: float
 
 
@@ -114,18 +115,32 @@ def top_delays(
     limit: int = Query(10, le=50),
     session: Session = Depends(get_session),
 ) -> list[StopDelayOut]:
-    """Top stops by average delay (minutes), descending."""
+    """Top stops by average delay (minutes), descending. Joins transit_stops
+    so the chart can render the real stop name instead of a cryptic ID."""
     stmt = (
         select(
             TransitStopDelay.stop_id,
+            TransitStop.stop_name,
             func.avg(TransitStopDelay.avg_delay_mins).label("mean_delay"),
         )
-        .group_by(TransitStopDelay.stop_id)
+        .join(
+            TransitStop,
+            TransitStop.stop_id == TransitStopDelay.stop_id,
+            isouter=True,
+        )
+        .group_by(TransitStopDelay.stop_id, TransitStop.stop_name)
         .order_by(func.avg(TransitStopDelay.avg_delay_mins).desc())
         .limit(limit)
     )
     rows = session.execute(stmt).all()
-    return [StopDelayOut(stop_id=r.stop_id, avg_delay_mins=float(r.mean_delay or 0)) for r in rows]
+    return [
+        StopDelayOut(
+            stop_id=r.stop_id,
+            stop_name=r.stop_name,
+            avg_delay_mins=float(r.mean_delay or 0),
+        )
+        for r in rows
+    ]
 
 
 @router.get("/predict", response_model=PredictionOut)

@@ -7,6 +7,7 @@ import { clsx } from "@/lib/api";
 const LINKS = [
   { href: "/", label: "Home" },
   { href: "/transit", label: "Transit" },
+  { href: "/waste", label: "Waste" },
   { href: "/ask", label: "Ask" },
   { href: "/neighbourhood", label: "Map" },
 ];

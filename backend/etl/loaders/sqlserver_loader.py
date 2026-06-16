@@ -34,7 +34,11 @@ def _get_sqlserver_engine() -> Engine:
 
 
 def load_to_sqlserver(table: str, df: pd.DataFrame) -> int:
-    """Load a DataFrame into SQL Server. Returns rows written, or 0 on skip/error."""
+    """Load a DataFrame into SQL Server. Returns rows written, or 0 on skip/error.
+
+    Skips silently if pyodbc isn't installed or SQL Server isn't reachable so
+    the rest of the pipeline keeps working.
+    """
     if not settings.sqlserver_enabled:
         logger.debug("SQL Server not configured, skipping load for %s", table)
         return 0
@@ -42,8 +46,8 @@ def load_to_sqlserver(table: str, df: pd.DataFrame) -> int:
         logger.info("Skipping SQL Server load for %s (empty frame)", table)
         return 0
 
-    engine = _get_sqlserver_engine()
     try:
+        engine = _get_sqlserver_engine()
         with engine.begin() as conn:
             if table in FULL_REFRESH:
                 conn.execute(text(f"DELETE FROM [{table}]"))

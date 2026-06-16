@@ -24,6 +24,7 @@ export interface PerformancePoint {
 
 export interface StopDelay {
   stop_id: string;
+  stop_name?: string | null;
   avg_delay_mins: number;
 }
 

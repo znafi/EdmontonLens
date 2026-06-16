@@ -68,6 +68,9 @@ export const client = {
     ),
   parks: () => getJSON<Park[]>(`/api/parks`),
   waste: () => getJSON<WasteSchedule[]>(`/api/waste`),
+  wasteFor: (neighbourhoodId: string) =>
+    getJSON<WasteSchedule[]>(`/api/waste?neighbourhood_id=${encodeURIComponent(neighbourhoodId)}`),
+  diversion: () => getJSON<DiversionRate>(`/api/waste?kind=diversion`),
   neighbourhoods: () => getJSON<Neighbourhood[]>(`/api/neighbourhoods`),
   geojson: () => getJSON<GeoJSONFeatureCollection>(`/api/neighbourhoods?kind=geojson`),
   snapshot: (id: string) =>

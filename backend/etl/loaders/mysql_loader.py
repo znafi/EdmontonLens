@@ -32,7 +32,11 @@ def _get_mysql_engine() -> Engine:
 
 
 def load_to_mysql(table: str, df: pd.DataFrame) -> int:
-    """Load a DataFrame into MySQL. Returns rows written, or 0 on skip/error."""
+    """Load a DataFrame into MySQL. Returns rows written, or 0 on skip/error.
+
+    Skips silently if pymysql isn't installed or MySQL isn't reachable so the
+    rest of the pipeline (SQLite, BigQuery) keeps working.
+    """
     if not settings.mysql_enabled:
         logger.debug("MySQL not configured, skipping load for %s", table)
         return 0
@@ -40,8 +44,8 @@ def load_to_mysql(table: str, df: pd.DataFrame) -> int:
         logger.info("Skipping MySQL load for %s (empty frame)", table)
         return 0
 
-    engine = _get_mysql_engine()
     try:
+        engine = _get_mysql_engine()
         with engine.begin() as conn:
             if table in FULL_REFRESH:
                 conn.execute(text(f"DELETE FROM `{table}`"))
