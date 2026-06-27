@@ -95,24 +95,42 @@ def _get_executor() -> tuple[Any, BigQuerySQLTool]:
     return _executor, _sql_tool
 
 
+# Hard wall-clock ceiling for the whole agent run. If the LLM or a tool call
+# stalls (e.g. a slow upstream), we abandon the agent and answer with the
+# deterministic keyword router so the request never hangs.
+_AGENT_DEADLINE_SECONDS = 50
+
+
 def answer_question(question: str) -> AgentResult:
     """Answer a natural-language question and return answer/SQL/rows."""
     if not settings.gemini_enabled:
         return _fallback_answer(question)
 
+    import concurrent.futures
+
     try:
-        executor, sql_tool = _get_executor()
-        result = executor.invoke({"input": question})
-        output = str(result.get("output", "")).strip()
-        answer, sql_used = _split_answer_sql(output)
-        return AgentResult(
-            answer=answer or output,
-            sql_used=sql_used or sql_tool.last_sql,
-            rows=sql_tool.last_rows,
-        )
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(_run_agent, question)
+            return future.result(timeout=_AGENT_DEADLINE_SECONDS)
+    except concurrent.futures.TimeoutError:
+        logger.warning("Agent timed out after %ss, using fallback", _AGENT_DEADLINE_SECONDS)
+        return _fallback_answer(question)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Agent error, using fallback: %s", exc)
         return _fallback_answer(question)
+
+
+def _run_agent(question: str) -> AgentResult:
+    """Invoke the LangChain executor (runs on a worker thread under a deadline)."""
+    executor, sql_tool = _get_executor()
+    result = executor.invoke({"input": question})
+    output = str(result.get("output", "")).strip()
+    answer, sql_used = _split_answer_sql(output)
+    return AgentResult(
+        answer=answer or output,
+        sql_used=sql_used or sql_tool.last_sql,
+        rows=sql_tool.last_rows,
+    )
 
 
 def _split_answer_sql(text: str) -> tuple[str, str]:
