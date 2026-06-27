@@ -9,9 +9,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,9 +21,17 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
+        working-directory: frontend
         run: npm ci || npm install
 
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
       - name: Deploy to Vercel (production)
+        working-directory: frontend
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: npx vercel --prod --yes --token "$VERCEL_TOKEN"
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx vercel --prod --yes --token "$VERCEL_TOKEN" --cwd .
