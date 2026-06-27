@@ -2,12 +2,14 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# System deps for geopandas / psycopg2 / scientific stack
+# System deps for geopandas / psycopg2 / pyodbc / scientific stack.
+# unixodbc-dev is required to compile pyodbc; without it the pip install fails.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
     gdal-bin \
     libgdal-dev \
+    unixodbc-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
