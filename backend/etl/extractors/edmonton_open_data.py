@@ -77,14 +77,24 @@ async def extract_parks() -> pd.DataFrame:
         return _sample_parks()
 
 
-async def extract_waste_schedules() -> pd.DataFrame:
-    """Return raw waste collection schedules as a DataFrame."""
+async def extract_waste_schedules(
+    neighbourhood_ids: list[str] | None = None,
+) -> pd.DataFrame:
+    """Return raw waste collection schedules as a DataFrame.
+
+    ``neighbourhood_ids`` is an optional list of real neighbourhood IDs to use
+    when generating the synthetic fallback. Passing real IDs ensures every
+    neighbourhood gets waste coverage in the KPI aggregation.
+    """
     try:
         rows = await _fetch_resource(RESOURCES["waste_schedules"])
-        return pd.DataFrame(rows)
+        df = pd.DataFrame(rows)
+        if df.empty:
+            raise ValueError("empty response")
+        return df
     except Exception as exc:  # noqa: BLE001
         logger.warning("Socrata waste_schedules fetch failed (%s); using sample data", exc)
-        return _sample_waste()
+        return _sample_waste(neighbourhood_ids)
 
 
 # --------------------------------------------------------------------------- #
@@ -133,11 +143,18 @@ def _sample_parks() -> pd.DataFrame:
     )
 
 
-def _sample_waste() -> pd.DataFrame:
+def _sample_waste(neighbourhood_ids: list[str] | None = None) -> pd.DataFrame:
+    """Generate synthetic waste schedules.
+
+    When ``neighbourhood_ids`` is provided (real IDs from the boundaries
+    dataset), we generate schedules for every neighbourhood so the KPI
+    aggregation has coverage across the whole city.
+    """
     days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
     types = ["garbage", "recycling", "organics"]
+    ids = neighbourhood_ids if neighbourhood_ids else _NEIGHBOURHOODS
     rows = []
-    for i, nid in enumerate(_NEIGHBOURHOODS):
+    for i, nid in enumerate(ids):
         for j, wtype in enumerate(types):
             rows.append(
                 {

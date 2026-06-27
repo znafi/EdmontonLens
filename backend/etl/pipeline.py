@@ -53,22 +53,43 @@ logger = logging.getLogger("edmontonlens.etl")
 
 
 async def _extract_all() -> dict[str, Any]:
-    """Run every extractor concurrently and return a dict of raw outputs."""
-    logger.info("Starting extraction phase")
+    """Run every extractor concurrently and return a dict of raw outputs.
+
+    Boundaries are fetched first so we can pass real neighbourhood IDs to the
+    waste extractor's synthetic fallback, ensuring KPI coverage city-wide.
+    """
+    logger.info("Starting extraction phase — fetching boundaries first")
+    boundaries = await extract_neighbourhood_boundaries()
+
+    # Derive real neighbourhood IDs so the waste fallback covers every
+    # neighbourhood in the boundaries dataset rather than 5 hardcoded ones.
+    real_nids: list[str] = []
+    for feature in boundaries.get("features", []):
+        props = feature.get("properties", {})
+        nid = (
+            props.get("neighbourhood_id")
+            or props.get("neighbourhood_number")
+            or props.get("neighbourh")
+            or props.get("OBJECTID")
+            or props.get("id")
+        )
+        if nid:
+            real_nids.append(str(nid))
+
+    logger.info("  found %d neighbourhood IDs for waste fallback", len(real_nids))
+
     (
         raw_routes,
         raw_stops,
         raw_parks,
         raw_waste,
         gtfs,
-        boundaries,
     ) = await asyncio.gather(
         extract_transit_routes(),
         extract_transit_stops(),
         extract_parks(),
-        extract_waste_schedules(),
+        extract_waste_schedules(neighbourhood_ids=real_nids or None),
         extract_gtfs(),
-        extract_neighbourhood_boundaries(),
     )
     return {
         "raw_routes": raw_routes,
