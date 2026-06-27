@@ -111,8 +111,38 @@ _agent_pool = concurrent.futures.ThreadPoolExecutor(
 )
 
 
+def _smalltalk_reply(question: str) -> str | None:
+    """Return a friendly reply for greetings/small talk, else None.
+
+    Without this, "hi" gets turned into a SQL query and a confusing table.
+    """
+    q = question.strip().lower().rstrip("!.? ")
+    greetings = {
+        "hi", "hello", "hey", "yo", "hiya", "howdy", "hi there", "hello there",
+        "hey there", "good morning", "good afternoon", "good evening", "sup",
+        "what's up", "whats up",
+    }
+    thanks = {"thanks", "thank you", "ty", "thx", "cheers", "appreciate it"}
+    byes = {"bye", "goodbye", "see ya", "see you", "later"}
+    if q in greetings:
+        return (
+            "Hi! I'm CityBot. Ask me about Edmonton's transit, parks, waste "
+            "pickup, or neighbourhoods. For example: \"What day is garbage "
+            "pickup in Glenora?\" or \"Which 5 stops have the worst delays?\""
+        )
+    if q in thanks:
+        return "You're welcome! Ask me anything else about Edmonton's open data."
+    if q in byes:
+        return "Take care! Come back anytime you have a question about the city."
+    return None
+
+
 def answer_question(question: str) -> AgentResult:
     """Answer a natural-language question and return answer/SQL/rows."""
+    chat = _smalltalk_reply(question)
+    if chat is not None:
+        return AgentResult(answer=chat, sql_used="", rows=[])
+
     if not settings.gemini_enabled:
         return _fallback_answer(question)
 
@@ -150,22 +180,31 @@ _GEMINI_ENDPOINT = (
 
 
 def _gemini_call(prompt: str, timeout: float) -> str:
-    """Call the Gemini REST API and return the first candidate's text."""
+    """Call the Gemini REST API and return the first candidate's text.
+
+    Retries once on a 429 (rate limit) after a short pause, since rapid
+    successive questions can briefly exceed the per-minute quota.
+    """
+    import time
+
     import httpx
 
     url = _GEMINI_ENDPOINT.format(model=settings.gemini_model)
-    resp = httpx.post(
-        url,
-        params={"key": settings.gemini_api_key},
-        json={
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.0, "maxOutputTokens": 1024},
-        },
-        timeout=timeout,
-    )
-    resp.raise_for_status()
-    data = resp.json()
-    return str(data["candidates"][0]["content"]["parts"][0]["text"]).strip()
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.0, "maxOutputTokens": 2048},
+    }
+    for attempt in range(2):
+        resp = httpx.post(
+            url, params={"key": settings.gemini_api_key}, json=payload, timeout=timeout
+        )
+        if resp.status_code == 429 and attempt == 0:
+            time.sleep(3)
+            continue
+        resp.raise_for_status()
+        data = resp.json()
+        return str(data["candidates"][0]["content"]["parts"][0]["text"]).strip()
+    raise RuntimeError("Gemini rate limit (429) after retry")
 
 
 def _generate_sql(question: str) -> str:
@@ -175,7 +214,12 @@ def _generate_sql(question: str) -> str:
         + f"\n\nThe resident asked: \"{question}\"\n\n"
         "Write exactly ONE read-only SQL SELECT (SQLite/ANSI compatible) that "
         "answers it. Output ONLY the SQL with no explanation and no markdown "
-        "code fences. Always include LIMIT 500 or fewer."
+        "code fences. Always include LIMIT 500 or fewer. For any text filter "
+        "(neighbourhood names, waste types like garbage/recycling/organics, "
+        "pickup days, etc.) match case-insensitively, e.g. "
+        "LOWER(column) = LOWER('value') or column LIKE 'value', so values "
+        "stored in a different case still match. Round decimal values to two "
+        "places using ROUND(value, 2) in the SELECT."
     )
     raw = _gemini_call(prompt, timeout=25)
     return _clean_sql(raw)
@@ -230,55 +274,76 @@ def _split_answer_sql(text: str) -> tuple[str, str]:
 # --------------------------------------------------------------------------- #
 # Deterministic fallback (no Gemini key required)
 # --------------------------------------------------------------------------- #
+_UNSURE_REPLY = (
+    "I'm not sure I understood that. I can answer questions about Edmonton's "
+    "transit delays, parks, waste pickup schedules, and neighbourhood stats. "
+    "Try asking something like \"What day is recycling in Highlands?\" or "
+    "\"Which 5 stops have the worst delays?\""
+)
+
+
 def _fallback_answer(question: str) -> AgentResult:
-    """Keyword-routed canned queries so dev works without an LLM."""
+    """Keyword-routed canned queries for when the LLM is unavailable.
+
+    Only answers when the question clearly matches a known topic. Anything
+    unrecognised (off-topic or gibberish) gets a friendly nudge instead of a
+    random data dump, so CityBot behaves like a chatbot rather than a table.
+    """
     q = question.lower()
+    sql: str | None = None
+    if "garbage" in q or "pickup" in q or "waste" in q or "recycl" in q or "organic" in q:
+        sql = (
+            "SELECT n.neighbourhood_name, w.waste_type, w.pickup_day "
+            "FROM waste_schedules w "
+            "JOIN neighbourhoods n ON n.neighbourhood_id = w.neighbourhood_id "
+            "LIMIT 50"
+        )
+    elif "park" in q:
+        sql = (
+            "SELECT n.neighbourhood_name, COUNT(*) AS park_count "
+            "FROM parks p JOIN neighbourhoods n "
+            "ON n.neighbourhood_id = p.neighbourhood_id "
+            "GROUP BY n.neighbourhood_name ORDER BY park_count DESC LIMIT 10"
+        )
+    elif "stop" in q and "delay" in q:
+        sql = (
+            "SELECT stop_id, AVG(avg_delay_mins) AS mean_delay "
+            "FROM transit_stop_delays GROUP BY stop_id "
+            "ORDER BY mean_delay DESC LIMIT 5"
+        )
+    elif "delay" in q or "route" in q or "bus" in q or "transit" in q:
+        sql = (
+            "SELECT route_id, SUM(delayed_trips) AS total_delays "
+            "FROM transit_performance GROUP BY route_id "
+            "ORDER BY total_delays DESC LIMIT 10"
+        )
+    elif "neighbourhood" in q or "neighborhood" in q or "score" in q or "best" in q:
+        sql = (
+            "SELECT n.neighbourhood_name, k.overall_score "
+            "FROM neighbourhood_kpis k "
+            "JOIN neighbourhoods n ON n.neighbourhood_id = k.neighbourhood_id "
+            "ORDER BY k.overall_score DESC LIMIT 10"
+        )
+
+    if sql is None:
+        return AgentResult(answer=_UNSURE_REPLY, sql_used="", rows=[])
+
     try:
-        if "garbage" in q or "pickup" in q or "waste" in q:
-            sql = (
-                "SELECT n.neighbourhood_name, w.waste_type, w.pickup_day "
-                "FROM waste_schedules w "
-                "JOIN neighbourhoods n ON n.neighbourhood_id = w.neighbourhood_id "
-                "LIMIT 50"
-            )
-        elif "park" in q:
-            sql = (
-                "SELECT n.neighbourhood_name, COUNT(*) AS park_count "
-                "FROM parks p JOIN neighbourhoods n "
-                "ON n.neighbourhood_id = p.neighbourhood_id "
-                "GROUP BY n.neighbourhood_name ORDER BY park_count DESC LIMIT 10"
-            )
-        elif "stop" in q and "delay" in q:
-            sql = (
-                "SELECT stop_id, AVG(avg_delay_mins) AS mean_delay "
-                "FROM transit_stop_delays GROUP BY stop_id "
-                "ORDER BY mean_delay DESC LIMIT 5"
-            )
-        elif "delay" in q or "route" in q:
-            sql = (
-                "SELECT route_id, SUM(delayed_trips) AS total_delays "
-                "FROM transit_performance GROUP BY route_id "
-                "ORDER BY total_delays DESC LIMIT 10"
-            )
-        else:
-            sql = (
-                "SELECT neighbourhood_id, overall_score "
-                "FROM neighbourhood_kpis ORDER BY overall_score DESC LIMIT 10"
-            )
         df = run_sql(sql)
         rows = df.to_dict(orient="records")
+        if not rows:
+            return AgentResult(answer=_UNSURE_REPLY, sql_used="", rows=[])
         answer = (
             "Here is what I found in the EdmontonLens warehouse "
-            f"(showing {len(rows)} rows). I answered this one with a built-in "
-            "query rather than the full CityBot agent."
+            f"(showing {len(rows)} rows)."
         )
         return AgentResult(answer=answer, sql_used=sql, rows=rows)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Fallback query failed: %s", exc)
         return AgentResult(
             answer=(
-                "I couldn't reach the data warehouse. Make sure the ETL pipeline "
-                "has run (python -m backend.etl.pipeline) and try again."
+                "I'm having trouble reaching the data right now. Please try "
+                "again in a moment."
             ),
             sql_used="",
             rows=[],
