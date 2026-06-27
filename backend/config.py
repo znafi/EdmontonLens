@@ -29,11 +29,11 @@ class Settings(BaseSettings):
 
     # --- Gemini ---
     gemini_api_key: str | None = None
-    # Model name for the CityBot agent. gemini-2.0-flash is fast and has no
-    # extended-thinking latency, so the ReAct loop finishes well within the
-    # request deadline. (gemini-1.5-pro was retired by Google in 2025, and
-    # gemini-2.5-flash's thinking tokens made each step too slow.)
-    gemini_model: str = "gemini-2.0-flash"
+    # Model name for the CityBot agent. We make just two Gemini calls per
+    # question (generate SQL, summarise rows), so gemini-2.5-flash's thinking
+    # latency is fine and it answers in a few seconds. (gemini-1.5-pro was
+    # retired in 2025, and this key has no quota for gemini-2.0-flash.)
+    gemini_model: str = "gemini-2.5-flash"
 
     # --- Local DB (dev) ---
     # Defaults to a local SQLite file so the app runs with zero external deps.
