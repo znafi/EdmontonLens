@@ -42,9 +42,11 @@ def _build_executor() -> tuple[Any, BigQuerySQLTool]:
     from langchain_google_genai import ChatGoogleGenerativeAI
 
     llm = ChatGoogleGenerativeAI(
-        model="gemini-1.5-pro",
+        model=settings.gemini_model,
         google_api_key=settings.gemini_api_key,
         temperature=0.0,
+        timeout=30,
+        max_retries=1,
     )
     sql_tool = BigQuerySQLTool()
     tools = [SchemaInspectorTool(), sql_tool]
@@ -80,7 +82,8 @@ Thought:{agent_scratchpad}"""
         tools=tools,
         verbose=False,
         handle_parsing_errors=True,
-        max_iterations=8,
+        max_iterations=5,
+        max_execution_time=45,
     )
     return executor, sql_tool
 

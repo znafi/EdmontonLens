@@ -29,6 +29,9 @@ class Settings(BaseSettings):
 
     # --- Gemini ---
     gemini_api_key: str | None = None
+    # Model name for the CityBot agent. Defaults to a current, fast model;
+    # gemini-1.5-pro was retired by Google in 2025.
+    gemini_model: str = "gemini-2.5-flash"
 
     # --- Local DB (dev) ---
     # Defaults to a local SQLite file so the app runs with zero external deps.
