@@ -190,9 +190,9 @@ def _fallback_answer(question: str) -> AgentResult:
         df = run_sql(sql)
         rows = df.to_dict(orient="records")
         answer = (
-            "Here is what I found based on the EdmontonLens warehouse "
-            f"(showing {len(rows)} rows). Note: running in offline mode without "
-            "Gemini, so this used a templated query."
+            "Here is what I found in the EdmontonLens warehouse "
+            f"(showing {len(rows)} rows). I answered this one with a built-in "
+            "query rather than the full CityBot agent."
         )
         return AgentResult(answer=answer, sql_used=sql, rows=rows)
     except Exception as exc:  # noqa: BLE001
