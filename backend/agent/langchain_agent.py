@@ -129,16 +129,94 @@ def answer_question(question: str) -> AgentResult:
 
 
 def _run_agent(question: str) -> AgentResult:
-    """Invoke the LangChain executor (runs on a worker thread under a deadline)."""
-    executor, sql_tool = _get_executor()
-    result = executor.invoke({"input": question})
-    output = str(result.get("output", "")).strip()
-    answer, sql_used = _split_answer_sql(output)
-    return AgentResult(
-        answer=answer or output,
-        sql_used=sql_used or sql_tool.last_sql,
-        rows=sql_tool.last_rows,
+    """Answer via a direct Gemini text-to-SQL call (runs under a deadline).
+
+    The LangChain ReAct executor (see ``_build_executor``) remains wired up, but
+    the old ``langchain-google-genai`` client and the multi-step ReAct loop were
+    unreliable in production: a single LLM call could stall past the request
+    deadline. This path talks to the Gemini REST API directly in two quick
+    steps — generate SQL, then summarise the rows — which is fast and robust.
+    """
+    sql = _generate_sql(question)
+    df = run_sql(sql)
+    rows = df.to_dict(orient="records")
+    answer = _summarise_rows(question, rows)
+    return AgentResult(answer=answer, sql_used=sql, rows=rows)
+
+
+_GEMINI_ENDPOINT = (
+    "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+)
+
+
+def _gemini_call(prompt: str, timeout: float) -> str:
+    """Call the Gemini REST API and return the first candidate's text."""
+    import httpx
+
+    url = _GEMINI_ENDPOINT.format(model=settings.gemini_model)
+    resp = httpx.post(
+        url,
+        params={"key": settings.gemini_api_key},
+        json={
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.0, "maxOutputTokens": 1024},
+        },
+        timeout=timeout,
     )
+    resp.raise_for_status()
+    data = resp.json()
+    return str(data["candidates"][0]["content"]["parts"][0]["text"]).strip()
+
+
+def _generate_sql(question: str) -> str:
+    """Ask Gemini for a single read-only SELECT that answers the question."""
+    prompt = (
+        SYSTEM_PROMPT
+        + f"\n\nThe resident asked: \"{question}\"\n\n"
+        "Write exactly ONE read-only SQL SELECT (SQLite/ANSI compatible) that "
+        "answers it. Output ONLY the SQL with no explanation and no markdown "
+        "code fences. Always include LIMIT 500 or fewer."
+    )
+    raw = _gemini_call(prompt, timeout=25)
+    return _clean_sql(raw)
+
+
+def _clean_sql(raw: str) -> str:
+    """Strip markdown fences / stray prose so we are left with a SELECT."""
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        if text[:3].lower() == "sql":
+            text = text[3:]
+    text = text.strip().rstrip(";")
+    # If the model prepended prose, keep from the first SELECT/WITH onward.
+    lowered = text.lower()
+    for kw in ("select", "with"):
+        idx = lowered.find(kw)
+        if idx != -1:
+            return text[idx:].strip()
+    return text
+
+
+def _summarise_rows(question: str, rows: list[dict[str, Any]]) -> str:
+    """Ask Gemini for a short plain-English answer over the returned rows."""
+    if not rows:
+        return "I ran a query for that but it didn't return any matching data."
+    import json
+
+    sample = json.dumps(rows[:30], default=str)
+    prompt = (
+        f'A resident asked: "{question}"\n\n'
+        f"A SQL query returned these rows as JSON:\n{sample}\n\n"
+        "Answer the question in 1-3 short, friendly sentences based only on this "
+        "data. Use specific numbers and names. Do not mention SQL, queries, or "
+        "that you were given JSON."
+    )
+    try:
+        return _gemini_call(prompt, timeout=20)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Summary call failed (%s); returning a basic answer", exc)
+        return f"Here is what I found for your question ({len(rows)} results)."
 
 
 def _split_answer_sql(text: str) -> tuple[str, str]:
