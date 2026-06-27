@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -58,6 +59,21 @@ class Settings(BaseSettings):
     socrata_base_url: str = "https://data.edmonton.ca/resource/"
     gtfs_feed_url: str = "https://data.edmonton.ca/api/geospatial/gtfs"
     arcgis_base_url: str = "https://maps.edmonton.ca/arcgis/rest/services/"
+
+    @field_validator(
+        "gemini_api_key", "edmonton_open_data_app_token", "gcp_project_id"
+    )
+    @classmethod
+    def _strip_secret(cls, v: str | None) -> str | None:
+        """Trim whitespace/newlines that often sneak in when pasting secrets.
+
+        A trailing newline in a copied API key produces a 401 from Google, which
+        is exactly the kind of silent failure this guards against.
+        """
+        if isinstance(v, str):
+            v = v.strip()
+            return v or None
+        return v
 
     @property
     def mysql_enabled(self) -> bool:
