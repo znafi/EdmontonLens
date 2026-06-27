@@ -88,7 +88,7 @@ export default function TransitPage() {
           {selectedRoute && <MLPredictionBadge routeId={selectedRoute} hour={8} day={0} />}
           <p className="mt-4 text-xs text-slate-400">
             This comes from a RandomForest model trained on 30 days of performance
-            data. It's estimating Monday morning rush, 8am.
+            data. It&apos;s estimating Monday morning rush, 8am.
           </p>
         </div>
       </div>

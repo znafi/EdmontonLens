@@ -38,7 +38,7 @@ export default function NeighbourhoodSnapshot({ neighbourhoodId }: Props) {
   if (!neighbourhoodId) {
     return (
       <div className="grid h-full place-items-center text-center text-slate-400">
-        <p>Tap a neighbourhood on the map and you'll see the numbers here.</p>
+        <p>Tap a neighbourhood on the map and you&apos;ll see the numbers here.</p>
       </div>
     );
   }

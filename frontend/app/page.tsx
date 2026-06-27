@@ -44,10 +44,10 @@ export default function HomePage() {
           Edmonton open data
         </p>
         <h1 className="max-w-3xl text-4xl font-bold leading-tight sm:text-5xl">
-          What's actually going on in your city.
+          What&apos;s actually going on in your city.
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-blue-100">
-          EdmontonLens pulls the city's open data on transit, parks, and waste
+          EdmontonLens pulls the city&apos;s open data on transit, parks, and waste
           into one place. You can read charts, ask questions in plain English,
           or browse a neighbourhood-by-neighbourhood breakdown.
         </p>

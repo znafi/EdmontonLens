@@ -139,7 +139,7 @@ export default function WastePage() {
                 <tr className="text-xs uppercase tracking-wide text-slate-500">
                   <th className="px-4 py-2 font-semibold">Neighbourhood</th>
                   <th className="px-4 py-2 font-semibold">Pickup day</th>
-                  <th className="px-4 py-2 font-semibold">What's collected</th>
+                  <th className="px-4 py-2 font-semibold">What&apos;s collected</th>
                   <th className="px-4 py-2 font-semibold">Cycle</th>
                 </tr>
               </thead>
