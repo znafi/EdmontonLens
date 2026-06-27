@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Allow up to 60s so the request can wait through a free-tier backend cold start.
+export const maxDuration = 60;
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 export async function POST(req: NextRequest) {

@@ -11,11 +11,13 @@ import {
   YAxis,
 } from "recharts";
 import type { PerformancePoint } from "@/types";
+import LoadingState from "@/components/LoadingState";
 
 const COLORS = ["#1d4ed8", "#16a34a", "#ea580c", "#9333ea", "#0891b2"];
 
 interface Props {
   data: PerformancePoint[];
+  loading?: boolean;
 }
 
 // Pivot the flat performance points into one series per route, by date.
@@ -38,8 +40,12 @@ function pivot(data: PerformancePoint[]) {
   return { rows, topRoutes };
 }
 
-export default function TransitPulseChart({ data }: Props) {
+export default function TransitPulseChart({ data, loading }: Props) {
   const { rows, topRoutes } = pivot(data);
+
+  if (rows.length === 0 && loading) {
+    return <LoadingState label="Loading on-time performance..." />;
+  }
 
   if (rows.length === 0) {
     return <p className="text-sm text-slate-500">No performance data yet. Run the ETL pipeline.</p>;

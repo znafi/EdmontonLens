@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import TransitPulseChart from "@/components/TransitPulseChart";
 import DelayBarChart from "@/components/DelayBarChart";
 import MLPredictionBadge from "@/components/MLPredictionBadge";
+import LoadingState from "@/components/LoadingState";
 import { client, clsx } from "@/lib/api";
 import type { PerformancePoint, StopDelay, TransitRoute } from "@/types";
 
@@ -15,6 +16,7 @@ export default function TransitPage() {
   const [routes, setRoutes] = useState<TransitRoute[]>([]);
   const [selectedRoute, setSelectedRoute] = useState<string>("");
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     try {
@@ -30,6 +32,8 @@ export default function TransitPage() {
       setUpdatedAt(new Date());
     } catch {
       /* keep last good data */
+    } finally {
+      setLoading(false);
     }
   }, [selectedRoute]);
 
@@ -51,14 +55,14 @@ export default function TransitPage() {
             {updatedAt && ` · last updated ${updatedAt.toLocaleTimeString()}`}
           </p>
         </div>
-        <OnTimeBadge value={today} />
+        <OnTimeBadge value={today} loading={loading} />
       </div>
 
       <div className="card">
         <h2 className="mb-4 text-lg font-semibold text-slate-800">
           How often buses ran on time this month (top 5 routes)
         </h2>
-        <TransitPulseChart data={performance} />
+        <TransitPulseChart data={performance} loading={loading} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -66,7 +70,7 @@ export default function TransitPage() {
           <h2 className="mb-4 text-lg font-semibold text-slate-800">
             Stops where buses are most often late
           </h2>
-          <DelayBarChart data={delays} />
+          <DelayBarChart data={delays} loading={loading} />
         </div>
 
         <div className="card">
@@ -104,7 +108,15 @@ function todayCityWide(perf: PerformancePoint[]): number | null {
   return todays.reduce((s, p) => s + p.on_time_rate, 0) / todays.length;
 }
 
-function OnTimeBadge({ value }: { value: number | null }) {
+function OnTimeBadge({ value, loading }: { value: number | null; loading?: boolean }) {
+  if (loading && value === null) {
+    return (
+      <div className="flex items-center gap-3 rounded-xl bg-slate-100 px-6 py-4 text-slate-400">
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-brand" />
+        <span className="text-sm">Loading the latest numbers...</span>
+      </div>
+    );
+  }
   if (value === null) {
     return (
       <div className="rounded-xl bg-slate-100 px-6 py-4 text-slate-400">

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { client, clsx } from "@/lib/api";
+import LoadingState from "@/components/LoadingState";
 import type { DiversionRate, Neighbourhood, WasteSchedule } from "@/types";
 
 const TYPE_COLORS: Record<string, string> = {
@@ -127,7 +128,7 @@ export default function WastePage() {
         </div>
 
         {loading ? (
-          <p className="py-12 text-center text-slate-400">Grabbing pickup schedules...</p>
+          <LoadingState label="Grabbing pickup schedules..." />
         ) : rows.length === 0 ? (
           <p className="py-12 text-center text-slate-400">
             Nothing matched that. Try a different neighbourhood or clear the filter.

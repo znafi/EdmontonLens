@@ -9,6 +9,7 @@ import {
   XAxis,
 } from "recharts";
 import { client } from "@/lib/api";
+import LoadingState from "@/components/LoadingState";
 import type { NeighbourhoodSnapshot as Snapshot, TrendPoint } from "@/types";
 
 interface Props {
@@ -45,8 +46,8 @@ export default function NeighbourhoodSnapshot({ neighbourhoodId }: Props) {
 
   if (loading || !snap) {
     return (
-      <div className="grid h-full place-items-center text-slate-400">
-        Grabbing the numbers...
+      <div className="grid h-full place-items-center">
+        <LoadingState label="Grabbing the numbers..." />
       </div>
     );
   }

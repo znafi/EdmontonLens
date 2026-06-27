@@ -11,9 +11,11 @@ import {
   YAxis,
 } from "recharts";
 import type { StopDelay } from "@/types";
+import LoadingState from "@/components/LoadingState";
 
 interface Props {
   data: StopDelay[];
+  loading?: boolean;
 }
 
 function colorFor(mins: number): string {
@@ -27,7 +29,7 @@ function shortLabel(name: string | null | undefined, id: string): string {
   return raw.length > 22 ? raw.slice(0, 21) + "\u2026" : raw;
 }
 
-export default function DelayBarChart({ data }: Props) {
+export default function DelayBarChart({ data, loading }: Props) {
   const rows = [...data]
     .sort((a, b) => b.avg_delay_mins - a.avg_delay_mins)
     .slice(0, 10)
@@ -36,6 +38,10 @@ export default function DelayBarChart({ data }: Props) {
       full: d.stop_name ?? d.stop_id,
       delay: Math.round(d.avg_delay_mins * 10) / 10,
     }));
+
+  if (rows.length === 0 && loading) {
+    return <LoadingState label="Loading delay hotspots..." />;
+  }
 
   if (rows.length === 0) {
     return (

@@ -7,6 +7,7 @@ import type L from "leaflet";
 import type { Layer } from "leaflet";
 import type { Feature, Geometry } from "geojson";
 import { client } from "@/lib/api";
+import LoadingState from "@/components/LoadingState";
 import type { GeoJSONFeatureCollection, NeighbourhoodFeatureProperties } from "@/types";
 
 interface Props {
@@ -66,10 +67,15 @@ const LEGEND = [
 
 export default function NeighbourhoodMap({ onSelect, flyToId, onFlown }: Props) {
   const [data, setData] = useState<GeoJSONFeatureCollection | null>(null);
+  const [loading, setLoading] = useState(true);
   const layersRef = useRef<Map<string, Layer>>(new Map());
 
   useEffect(() => {
-    client.geojson().then(setData).catch(() => setData(null));
+    client
+      .geojson()
+      .then(setData)
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
   }, []);
 
   function styleFeature(feature?: Feature<Geometry, NeighbourhoodFeatureProperties>) {
@@ -105,6 +111,11 @@ export default function NeighbourhoodMap({ onSelect, flyToId, onFlown }: Props) 
 
   return (
     <div className="relative h-full w-full">
+      {loading && (
+        <div className="absolute inset-0 z-[500] grid place-items-center bg-white/70 backdrop-blur-sm">
+          <LoadingState label="Loading the neighbourhood map..." />
+        </div>
+      )}
       <MapContainer center={[53.5461, -113.4938]} zoom={11} scrollWheelZoom className="h-full w-full">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
