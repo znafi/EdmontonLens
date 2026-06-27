@@ -1,8 +1,9 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { useEffect, useState } from "react";
-import { GeoJSON, MapContainer, TileLayer } from "react-leaflet";
+import { useEffect, useRef, useState } from "react";
+import { GeoJSON, MapContainer, TileLayer, useMap } from "react-leaflet";
+import type L from "leaflet";
 import type { Layer } from "leaflet";
 import type { Feature, Geometry } from "geojson";
 import { client } from "@/lib/api";
@@ -10,6 +11,40 @@ import type { GeoJSONFeatureCollection, NeighbourhoodFeatureProperties } from "@
 
 interface Props {
   onSelect?: (id: string) => void;
+  /** When set, the map flies to this neighbourhood and opens its popup. */
+  flyToId?: string | null;
+  /** Called once the fly-to animation finishes so the parent can reset flyToId. */
+  onFlown?: () => void;
+}
+
+/** Inner component that lives inside MapContainer and can call useMap(). */
+function FlyToController({
+  flyToId,
+  layersRef,
+  onFlown,
+}: {
+  flyToId?: string | null;
+  layersRef: React.MutableRefObject<Map<string, Layer>>;
+  onFlown?: () => void;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (!flyToId) return;
+    const layer = layersRef.current.get(flyToId) as L.Polygon | undefined;
+    if (!layer) return;
+    const bounds = layer.getBounds?.();
+    if (bounds) {
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+    }
+    setTimeout(() => {
+      (layer as unknown as { openPopup?: () => void }).openPopup?.();
+      onFlown?.();
+    }, 350);
+    // flyToId is intentionally the only dep — we want this to fire on every
+    // new value, including re-selecting the same neighbourhood after reset.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flyToId]);
+  return null;
 }
 
 // Choropleth colour scale by overall_score (0-10).
@@ -29,8 +64,9 @@ const LEGEND = [
   { label: "0 to 2",  color: "#dc2626" },
 ];
 
-export default function NeighbourhoodMap({ onSelect }: Props) {
+export default function NeighbourhoodMap({ onSelect, flyToId, onFlown }: Props) {
   const [data, setData] = useState<GeoJSONFeatureCollection | null>(null);
+  const layersRef = useRef<Map<string, Layer>>(new Map());
 
   useEffect(() => {
     client.geojson().then(setData).catch(() => setData(null));
@@ -52,6 +88,7 @@ export default function NeighbourhoodMap({ onSelect }: Props) {
     layer: Layer,
   ) {
     const p = feature.properties;
+    layersRef.current.set(p.neighbourhood_id, layer);
     layer.bindPopup(
       `<div style="min-width:180px;line-height:1.6">
         <strong style="font-size:14px">${p.neighbourhood_name ?? p.neighbourhood_id}</strong><br/>
@@ -81,6 +118,7 @@ export default function NeighbourhoodMap({ onSelect }: Props) {
             onEachFeature={onEachFeature as never}
           />
         )}
+        <FlyToController flyToId={flyToId} layersRef={layersRef} onFlown={onFlown} />
       </MapContainer>
 
       <div className="absolute bottom-4 right-4 z-[400] rounded-lg bg-white/95 p-3 text-xs shadow-md">
