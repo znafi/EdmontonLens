@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: edmontonlens-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile.backend
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # SQLite ships inside the image (populated at build time).
+      - key: DATABASE_URL
+        value: sqlite:///./data/edmonton_lens.db
+      # Optional: set in the Render dashboard to enable the full Gemini agent.
+      # Without it, CityBot still works using the keyword fallback.
+      - key: GEMINI_API_KEY
+        sync: false
+      # Optional: higher Socrata rate limits for the daily data refresh.
+      - key: EDMONTON_OPEN_DATA_APP_TOKEN
+        sync: false
