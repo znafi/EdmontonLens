@@ -153,6 +153,25 @@ function SqlBlock({ sql }: { sql: string }) {
   );
 }
 
+function prettyHeader(col: string): string {
+  return col
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
+function formatCell(value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  let num: number | null = null;
+  if (typeof value === "number") num = value;
+  else if (typeof value === "string" && value.trim() !== "" && !isNaN(Number(value))) {
+    num = Number(value);
+  }
+  if (num !== null && !Number.isInteger(num)) {
+    return String(Number(num.toFixed(2)));
+  }
+  return String(value);
+}
+
 function ResultTable({ rows }: { rows: Record<string, unknown>[] }) {
   const cols = Object.keys(rows[0] ?? {});
   return (
@@ -162,7 +181,7 @@ function ResultTable({ rows }: { rows: Record<string, unknown>[] }) {
           <tr>
             {cols.map((c) => (
               <th key={c} className="px-2 py-1 font-semibold text-slate-600">
-                {c}
+                {prettyHeader(c)}
               </th>
             ))}
           </tr>
@@ -172,7 +191,7 @@ function ResultTable({ rows }: { rows: Record<string, unknown>[] }) {
             <tr key={i} className="border-t border-slate-100">
               {cols.map((c) => (
                 <td key={c} className="px-2 py-1 text-slate-700">
-                  {String(row[c])}
+                  {formatCell(row[c])}
                 </td>
               ))}
             </tr>
