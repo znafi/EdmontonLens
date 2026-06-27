@@ -56,6 +56,7 @@ def root() -> dict[str, object]:
         "status": "ok",
         "bigquery_enabled": settings.bigquery_enabled,
         "gemini_enabled": settings.gemini_enabled,
+        "gemini_model": settings.gemini_model,
         "docs": "/docs",
     }
 

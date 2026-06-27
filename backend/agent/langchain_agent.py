@@ -1,13 +1,14 @@
 """CityBot — a LangChain ReAct agent wrapping Gemini with warehouse SQL tools.
 
 When ``GEMINI_API_KEY`` is configured, builds a real ReAct AgentExecutor backed
-by ``ChatGoogleGenerativeAI`` (gemini-1.5-pro). When it is not configured (local
-dev / CI), falls back to a deterministic keyword router so the /ask page and the
-API remain functional without external credentials.
+by ``ChatGoogleGenerativeAI`` (model from ``settings.gemini_model``). When it is
+not configured (local dev / CI), falls back to a deterministic keyword router so
+the /ask page and the API remain functional without external credentials.
 """
 
 from __future__ import annotations
 
+import concurrent.futures
 import logging
 from typing import Any, TypedDict
 
@@ -100,19 +101,26 @@ def _get_executor() -> tuple[Any, BigQuerySQLTool]:
 # deterministic keyword router so the request never hangs.
 _AGENT_DEADLINE_SECONDS = 50
 
+# A shared pool we deliberately never block on shutting down. If a worker stalls
+# on a hung upstream call, we abandon it (it leaks until the process recycles)
+# and return a fallback rather than letting the HTTP request hang. Using a
+# context manager here would defeat the timeout, because its __exit__ waits for
+# the in-flight thread to finish.
+_agent_pool = concurrent.futures.ThreadPoolExecutor(
+    max_workers=2, thread_name_prefix="citybot"
+)
+
 
 def answer_question(question: str) -> AgentResult:
     """Answer a natural-language question and return answer/SQL/rows."""
     if not settings.gemini_enabled:
         return _fallback_answer(question)
 
-    import concurrent.futures
-
+    future = _agent_pool.submit(_run_agent, question)
     try:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            future = pool.submit(_run_agent, question)
-            return future.result(timeout=_AGENT_DEADLINE_SECONDS)
+        return future.result(timeout=_AGENT_DEADLINE_SECONDS)
     except concurrent.futures.TimeoutError:
+        future.cancel()
         logger.warning("Agent timed out after %ss, using fallback", _AGENT_DEADLINE_SECONDS)
         return _fallback_answer(question)
     except Exception as exc:  # noqa: BLE001
