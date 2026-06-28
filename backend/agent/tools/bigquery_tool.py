@@ -9,12 +9,15 @@ from __future__ import annotations
 
 import logging
 import re
+from typing import TYPE_CHECKING
 
-import pandas as pd
 from langchain_core.tools import BaseTool
 from pydantic import PrivateAttr
 
 from backend.config import settings
+
+if TYPE_CHECKING:  # pandas is imported lazily to keep API startup memory low
+    import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +47,8 @@ def _ensure_limit(sql: str) -> str:
 
 def run_sql(sql: str) -> pd.DataFrame:
     """Execute a validated SELECT and return up to 500 rows as a DataFrame."""
+    import pandas as pd
+
     if not _is_read_only(sql):
         raise ValueError("Only single read-only SELECT statements are permitted.")
     sql = _ensure_limit(sql)

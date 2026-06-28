@@ -16,14 +16,12 @@ from __future__ import annotations
 import logging
 import os
 from datetime import datetime
+from typing import TYPE_CHECKING
 
-import joblib
-import numpy as np
-import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, roc_auc_score
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
+if TYPE_CHECKING:  # imported lazily at runtime to keep the API's memory low
+    import pandas as pd
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.preprocessing import LabelEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +34,9 @@ def _build_training_frame(
     performance: pd.DataFrame, stops: pd.DataFrame
 ) -> pd.DataFrame:
     """Expand daily performance into hourly feature rows with a binary target."""
+    import numpy as np
+    import pandas as pd
+
     if performance.empty:
         return pd.DataFrame()
 
@@ -72,6 +73,12 @@ def train_and_persist(
     Returns a DataFrame matching the ``delay_predictions`` schema, or ``None``
     if there was insufficient data to train.
     """
+    import joblib
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.metrics import classification_report, roc_auc_score
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import LabelEncoder
+
     frame = _build_training_frame(performance, stops)
     if frame.empty or frame["is_delayed"].nunique() < 2:
         logger.warning("Insufficient/!balanced data to train delay predictor; skipping")
@@ -109,6 +116,8 @@ def _build_predictions(
     model: RandomForestClassifier, encoder: LabelEncoder, frame: pd.DataFrame
 ) -> pd.DataFrame:
     """Score every (route, hour, day) combination for the predictions table."""
+    import pandas as pd
+
     today = datetime.utcnow().date()
     routes = sorted(frame["route_id"].astype(str).unique())
     stop_count = float(frame["stop_count_on_route"].iloc[0])
@@ -137,14 +146,37 @@ def _build_predictions(
     return out
 
 
-def predict_delay_probability(route_id: str, hour: int, day: int) -> float:
-    """Load the persisted model and return the delay probability for a request.
+def _heuristic_probability(route_id: str, hour: int) -> float:
+    """Deterministic, dependency-free delay estimate (no scikit-learn needed)."""
+    rush = hour in (7, 8, 16, 17, 18)
+    return round(
+        min(0.95, 0.3 + (0.3 if rush else 0.0) + (hash(route_id) % 20) / 100.0), 4
+    )
 
-    Falls back to a deterministic heuristic when no model file exists yet.
+
+def _model_enabled() -> bool:
+    """Only load the scikit-learn model when explicitly opted in.
+
+    Loading the pickled RandomForest pulls scikit-learn/scipy into memory
+    (~150 MB), which overruns small free-tier instances. We default to the
+    lightweight heuristic and let larger deployments opt in with
+    ``USE_ML_MODEL=1``.
     """
-    if not os.path.exists(MODEL_PATH):
-        rush = hour in (7, 8, 16, 17, 18)
-        return round(min(0.95, 0.3 + (0.3 if rush else 0.0) + (hash(route_id) % 20) / 100.0), 4)
+    return os.environ.get("USE_ML_MODEL", "").strip().lower() in {"1", "true", "yes"}
+
+
+def predict_delay_probability(route_id: str, hour: int, day: int) -> float:
+    """Return the delay probability for a (route, hour, day) request.
+
+    Uses the trained scikit-learn model when ``USE_ML_MODEL`` is enabled and a
+    model file exists; otherwise falls back to a deterministic heuristic so the
+    API stays lightweight.
+    """
+    if not (_model_enabled() and os.path.exists(MODEL_PATH)):
+        return _heuristic_probability(route_id, hour)
+
+    import joblib
+    import pandas as pd
 
     bundle = joblib.load(MODEL_PATH)
     model = bundle["model"]
