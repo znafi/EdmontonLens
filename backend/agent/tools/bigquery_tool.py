@@ -14,8 +14,6 @@ from typing import TYPE_CHECKING
 from langchain_core.tools import BaseTool
 from pydantic import PrivateAttr
 
-from backend.config import settings
-
 if TYPE_CHECKING:  # pandas is imported lazily to keep API startup memory low
     import pandas as pd
 
@@ -53,19 +51,14 @@ def run_sql(sql: str) -> pd.DataFrame:
         raise ValueError("Only single read-only SELECT statements are permitted.")
     sql = _ensure_limit(sql)
 
-    if settings.bigquery_enabled:
-        from backend.database import get_bigquery_client
+    # Always the local DB: the agent prompt generates SQLite-dialect SQL with
+    # bare table names, and BigQuery is an optional warehouse for BI only.
+    from sqlalchemy import text
 
-        client = get_bigquery_client()
-        # Qualify bare table names with the dataset for BigQuery.
-        df = client.query(sql).result().to_dataframe()
-    else:
-        from sqlalchemy import text
+    from backend.database import engine
 
-        from backend.database import engine
-
-        with engine.connect() as conn:
-            df = pd.read_sql(text(sql), conn)
+    with engine.connect() as conn:
+        df = pd.read_sql(text(sql), conn)
     return df.head(MAX_ROWS)
 
 

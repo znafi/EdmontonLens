@@ -3,10 +3,9 @@
 Provides:
     * A SQLAlchemy engine + session factory for the local dev database
       (PostgreSQL in Docker, SQLite by default).
-    * A lazily-initialised BigQuery client for production reads/writes.
 
-The app degrades gracefully: if no GCP credentials are configured, BigQuery
-helpers raise a clear error and callers fall back to the local database.
+The API and agent always read from this database. BigQuery is an optional
+warehouse written by the ETL (see ``backend/etl/loaders/bigquery.py``).
 """
 
 from __future__ import annotations
@@ -61,34 +60,3 @@ def init_db() -> None:
 
     Base.metadata.create_all(bind=engine)
     logger.info("Local database initialised at %s", settings.database_url)
-
-
-# --------------------------------------------------------------------------- #
-# BigQuery
-# --------------------------------------------------------------------------- #
-_bq_client: Any | None = None
-
-
-def get_bigquery_client() -> Any:
-    """Return a cached BigQuery client.
-
-    Raises:
-        RuntimeError: if BigQuery is not configured (no GCP credentials).
-    """
-    global _bq_client
-    if not settings.bigquery_enabled:
-        raise RuntimeError(
-            "BigQuery is not configured. Set GCP_PROJECT_ID and "
-            "GOOGLE_APPLICATION_CREDENTIALS, or use the local database fallback."
-        )
-    if _bq_client is None:
-        from google.cloud import bigquery
-
-        _bq_client = bigquery.Client(project=settings.gcp_project_id)
-        logger.info("Initialised BigQuery client for project %s", settings.gcp_project_id)
-    return _bq_client
-
-
-def dataset_ref() -> str:
-    """Return the fully-qualified ``project.dataset`` reference."""
-    return f"{settings.gcp_project_id}.{settings.bigquery_dataset}"
