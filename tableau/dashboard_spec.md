@@ -3,9 +3,12 @@
 Four sheets on one dashboard. All fields below exist in the files in `data/`
 (see `README.md` for the field dictionary).
 
-> **Status:** the data files and every calculated field below are real and were
-> generated/validated from BigQuery. The `.twbx` workbook itself has **not**
-> been built or published yet; `BUILD_GUIDE.md` is how to build it.
+> **Status (2026-10-20):** published at https://public.tableau.com/app/profile/zawad.nafi/viz/EdmontonLens-NeighbourhoodsandTransit/Dashboard1
+> Built in Tableau Public web authoring from the files in `data/`: the map,
+> the scatter, the route trend, a data-quality table and a combined dashboard
+> with a "simulated data" banner. **Not yet in the published workbook:** the
+> On-Time Target parameter, the four calculated fields below, filters,
+> reference lines and the highlight action. They are the next iteration.
 
 ## Data sources
 

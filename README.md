@@ -19,7 +19,7 @@ Where the data lands:
 - **Google BigQuery** (optional, `edmonton-lens.edmonton_lens`, free sandbox): loaded when `GCP_PROJECT_ID` and `GOOGLE_APPLICATION_CREDENTIALS` are set. Loads are idempotent; re-running the same day leaves row counts unchanged. SQL views, data-quality checks and analysis queries live in [`sql/`](sql/).
 - **PostgreSQL, MySQL, SQL Server**: optional local loaders, skipped when those servers aren't running.
 
-The live demo does not read from BigQuery; BigQuery is the warehouse for analysis and Tableau.
+The live demo does not read from BigQuery; BigQuery is the warehouse for analysis and Tableau. A [Tableau Public dashboard](https://public.tableau.com/app/profile/zawad.nafi/viz/EdmontonLens-NeighbourhoodsandTransit/Dashboard1) (neighbourhood map, transit vs park scores, simulated route trend, data-quality checks) is built from files exported from the BigQuery views by `scripts/export_tableau.py`.
 
 In the middle sits a FastAPI server the Next.js frontend calls for everything. It handles data queries, natural-language chat through LangChain, and serves the neighbourhood GeoJSON. The API self-documents at `/docs`.
 
@@ -41,7 +41,7 @@ A GitHub Actions workflow schedules the pipeline daily; its BigQuery step needs 
 | Spatial joins | Shapely, pyproj |
 | Frontend | Next.js 14 with Tailwind and Recharts |
 | Map | Leaflet.js + react-leaflet |
-| BI | Tableau (see [`tableau/`](tableau/)); `powerbi/` and `looker_studio/` are untested guides |
+| BI | Tableau Public ([live dashboard](https://public.tableau.com/app/profile/zawad.nafi/viz/EdmontonLens-NeighbourhoodsandTransit/Dashboard1), docs in [`tableau/`](tableau/)); `powerbi/` and `looker_studio/` are untested guides |
 | Automation | GitHub Actions |
 
 ## Getting it running

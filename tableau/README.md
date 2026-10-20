@@ -2,6 +2,8 @@
 
 This document describes where every field in the Tableau dashboard comes from,
 how it is cleaned, how often it refreshes, and what it cannot tell you.
+**Live dashboard:** https://public.tableau.com/app/profile/zawad.nafi/viz/EdmontonLens-NeighbourhoodsandTransit/Dashboard1
+
 For the dashboard design see `dashboard_spec.md`; to build it see `BUILD_GUIDE.md`.
 
 **Real vs simulated, in one table**
@@ -100,4 +102,4 @@ The GeoJSON has the same fields as properties plus the polygon.
 5. **Boundaries are the 2019 vintage** and may not match current neighbourhoods.
 6. `total_trips` is a placeholder and `waste_schedules` is sample data; neither should be used.
 7. The BigQuery project is on the free sandbox (60-day table expiry, no DML). Credentials are a personal Google login (Application Default Credentials), not a service account.
-8. The Tableau workbook has not been built or published yet.
+8. The published workbook (https://public.tableau.com/app/profile/zawad.nafi/viz/EdmontonLens-NeighbourhoodsandTransit/Dashboard1) implements the four sheets and the dashboard but not yet the calculated fields, parameter and filters in `dashboard_spec.md`.

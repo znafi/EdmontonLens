@@ -1,9 +1,11 @@
 # Build guide
 
-> **Untested.** The data files this guide uses were generated and checked
-> (valid GeoJSON, row counts, field names). The Tableau steps were written
-> without Tableau installed, so menu names may differ slightly by version.
-> Fix this file if you find a step that is wrong.
+> **Route B was followed** (in Tableau Public *web authoring*, not the desktop
+> app) to build the published workbook: uploading the GeoJSON as a spatial
+> file and the CSVs, building each sheet, and publishing all worked. In web
+> authoring, double-clicking fields works where drag-and-drop may not, and a
+> measure can be put on Rows by double-clicking the shelf and typing e.g.
+> `AVG([On Time Rate 7D Avg])`. **Route A (live BigQuery) is untested.**
 
 Both routes build the same dashboard from `dashboard_spec.md`.
 
