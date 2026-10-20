@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     google_application_credentials: str | None = None
     gcp_project_id: str | None = None
     bigquery_dataset: str = "edmonton_lens"
+    bigquery_location: str = "US"
 
     # --- Gemini ---
     gemini_api_key: str | None = None
