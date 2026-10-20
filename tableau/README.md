@@ -80,8 +80,9 @@ The GeoJSON has the same fields as properties plus the polygon.
 28 PASS, 1 WARN.
 
 ## Refresh
-- **Today: manual.** Run the three commands above. The BigQuery load is idempotent: re-running on the same day leaves row counts unchanged (verified: counts identical across three runs).
-- **Scheduled:** `.github/workflows/data_refresh.yml` runs daily at 06:00 UTC and runs the pipeline, but its BigQuery step needs a `GCP_SA_KEY` repository secret that is **not configured**, so the scheduled run does not load BigQuery. Nothing has been verified about that workflow's BigQuery path.
+- **BigQuery tables: daily, automated.** `.github/workflows/data_refresh.yml` runs at 06:00 UTC and loads BigQuery using a service account (`etl-refresh@edmonton-lens`, roles BigQuery Data Editor + Job User) whose key is the `GCP_SA_KEY` secret. Verified with a manual run on 2026-10-20 (run 39487270413): all tables loaded, row counts unchanged.
+- The load is idempotent: re-running on the same day leaves row counts unchanged (verified across four runs, one from CI).
+- **Views and Tableau files: manual.** Views read the tables live; `python -m scripts.export_tableau` and re-publishing are needed to refresh the Tableau Public snapshot.
 - Tableau Public files are a snapshot; re-export and re-publish to update.
 - The BigQuery sandbox expires tables after 60 days (current tables expire about 2026-12-19); re-running the pipeline recreates them.
 
@@ -101,5 +102,5 @@ The GeoJSON has the same fields as properties plus the polygon.
 4. **1,012 stops (15%) lie outside the polygon they are assigned to** (nearest-centroid fallback). The quality check reports this as a WARN. Stop counts for neighbourhoods near these stops are approximate.
 5. **Boundaries are the 2019 vintage** and may not match current neighbourhoods.
 6. `total_trips` is a placeholder and `waste_schedules` is sample data; neither should be used.
-7. The BigQuery project is on the free sandbox (60-day table expiry, no DML). Credentials are a personal Google login (Application Default Credentials), not a service account.
+7. The BigQuery project is on the free sandbox (60-day table expiry, no DML). Local runs use a personal Google login (Application Default Credentials); CI uses the service account.
 8. The published workbook (https://public.tableau.com/app/profile/zawad.nafi/viz/EdmontonLens-NeighbourhoodsandTransit/Dashboard1) implements the four sheets and the dashboard but not yet the calculated fields, parameter and filters in `dashboard_spec.md`.
