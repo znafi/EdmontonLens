@@ -25,7 +25,7 @@ The live demo does not read from BigQuery; BigQuery is the warehouse for analysi
 
 In the middle sits a FastAPI server the Next.js frontend calls for everything. It handles data queries, natural-language chat through LangChain, and serves the neighbourhood GeoJSON. The API self-documents at `/docs`.
 
-A GitHub Actions workflow runs the pipeline daily and loads BigQuery with a dedicated service account. CI lints, type-checks and tests on every push. Vercel deploys the frontend from `main` through its GitHub integration, and Render rebuilds the API image (including a fresh SQLite load) on push. (`.github/workflows/deploy.yml` is unused: it needs a `VERCEL_TOKEN` secret that is not set.)
+A GitHub Actions workflow runs the pipeline daily and loads BigQuery with a dedicated service account. CI lints, type-checks and tests on every push. Vercel deploys the frontend from `main` through its GitHub integration, and Render rebuilds the API image (including a fresh SQLite load) on push.
 
 ## The tech behind it
 
