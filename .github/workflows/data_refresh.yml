@@ -10,6 +10,10 @@ jobs:
   etl:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Job-level so step `if:` conditions can see it. A step's own `env:` is not
+    # in scope for that step's `if:`, which left BigQuery auth always skipped.
+    env:
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,8 +31,6 @@ jobs:
 
       - name: Authenticate to Google Cloud
         if: ${{ env.GCP_SA_KEY != '' }}
-        env:
-          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
           echo "$GCP_SA_KEY" > "$RUNNER_TEMP/sa.json"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
