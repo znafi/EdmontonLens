@@ -30,21 +30,30 @@ RESOURCES: dict[str, str] = {
     "waste_schedules": "vkpg-2sa6",
 }
 
-DEFAULT_LIMIT = 5000
+PAGE_SIZE = 5000
 
 
-async def _fetch_resource(resource_id: str, limit: int = DEFAULT_LIMIT) -> list[dict[str, Any]]:
-    """Fetch rows from a single Socrata resource as a list of dicts."""
+async def _fetch_resource(resource_id: str, page_size: int = PAGE_SIZE) -> list[dict[str, Any]]:
+    """Fetch every row of a Socrata resource, paging with ``$offset``.
+
+    A single request is capped by ``$limit``; the stops dataset alone has more
+    than 5,000 rows, so without paging the tail was silently dropped.
+    """
     url = f"{settings.socrata_base_url}{resource_id}.json"
     headers: dict[str, str] = {}
     if settings.edmonton_open_data_app_token:
         headers["X-App-Token"] = settings.edmonton_open_data_app_token
-    params = {"$limit": str(limit)}
+    rows: list[dict[str, Any]] = []
     async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.get(url, params=params, headers=headers)
-        resp.raise_for_status()
-        data: list[dict[str, Any]] = resp.json()
-        return data
+        while True:
+            # Stable ordering on the system row id keeps pages from overlapping.
+            params = {"$limit": str(page_size), "$offset": str(len(rows)), "$order": ":id"}
+            resp = await client.get(url, params=params, headers=headers)
+            resp.raise_for_status()
+            page: list[dict[str, Any]] = resp.json()
+            rows.extend(page)
+            if len(page) < page_size:
+                return rows
 
 
 async def extract_transit_routes() -> pd.DataFrame:
