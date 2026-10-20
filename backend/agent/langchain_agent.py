@@ -42,7 +42,7 @@ def _build_executor() -> tuple[Any, BigQuerySQLTool]:
     from langchain_core.prompts import PromptTemplate
     from langchain_google_genai import ChatGoogleGenerativeAI
 
-    llm = ChatGoogleGenerativeAI(
+    llm = ChatGoogleGenerativeAI(  # type: ignore[call-arg]
         model=settings.gemini_model,
         google_api_key=settings.gemini_api_key,
         temperature=0.0,

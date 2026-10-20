@@ -13,7 +13,7 @@ import logging
 
 import pandas as pd
 from sqlalchemy import create_engine, text
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Connection, Engine
 
 from backend.config import settings
 from backend.etl.loaders.bigquery import FULL_REFRESH, PRIMARY_KEYS, TIME_SERIES
@@ -62,10 +62,10 @@ def load_to_mysql(table: str, df: pd.DataFrame) -> int:
         return 0
 
 
-def _delete_by_keys_mysql(conn: object, table: str, pk: str, ids: list[str]) -> None:
+def _delete_by_keys_mysql(conn: Connection, table: str, pk: str, ids: list[str]) -> None:
     batch_size = 500
     for i in range(0, len(ids), batch_size):
         batch = ids[i : i + batch_size]
         placeholders = ", ".join(f":id{j}" for j in range(len(batch)))
         params = {f"id{j}": v for j, v in enumerate(batch)}
-        conn.execute(text(f"DELETE FROM `{table}` WHERE `{pk}` IN ({placeholders})"), params)  # type: ignore[union-attr]
+        conn.execute(text(f"DELETE FROM `{table}` WHERE `{pk}` IN ({placeholders})"), params)

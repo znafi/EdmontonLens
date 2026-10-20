@@ -81,7 +81,7 @@ def assign_neighbourhood(
     lat_series = pd.to_numeric(out[lat_col], errors="coerce")
     lon_series = pd.to_numeric(out[lon_col], errors="coerce")
 
-    for idx, (lat, lon, current) in enumerate(zip(lat_series, lon_series, out[target_col])):
+    for idx, (lat, lon, current) in enumerate(zip(lat_series, lon_series, out[target_col], strict=False)):
         if not bool(missing_target.iloc[idx]):
             new_ids.append(str(current))
             continue
