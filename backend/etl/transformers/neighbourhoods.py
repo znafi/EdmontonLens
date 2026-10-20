@@ -38,7 +38,8 @@ def transform_neighbourhoods(feature_collection: dict[str, Any]) -> pd.DataFrame
                 "neighbourhood_id": nid,
                 "neighbourhood_name": name,
                 "boundary_geojson": json.dumps(feature.get("geometry", {}), separators=(",", ":")),
-                "area_sqkm": float(props.get("area_sqkm") or 0.0),
+                "area_sqkm": float(props.get("area_sqkm") or 0.0)
+                or _geodesic_area_sqkm(feature.get("geometry")),
             }
         )
     out = pd.DataFrame(rows)
@@ -49,6 +50,23 @@ def transform_neighbourhoods(feature_collection: dict[str, Any]) -> pd.DataFrame
     out = out.drop_duplicates(subset=["neighbourhood_id"])
     out["ingested_at"] = datetime.utcnow()
     return out.reset_index(drop=True)
+
+
+def _geodesic_area_sqkm(geometry: dict[str, Any] | None) -> float:
+    """Area of a GeoJSON geometry in km² on the WGS84 ellipsoid (0.0 if unusable).
+
+    The City's boundary dataset carries no area attribute, so it is derived.
+    """
+    if not geometry or not geometry.get("coordinates"):
+        return 0.0
+    try:
+        from pyproj import Geod
+        from shapely.geometry import shape
+
+        area_m2, _ = Geod(ellps="WGS84").geometry_area_perimeter(shape(geometry))
+        return round(abs(area_m2) / 1_000_000.0, 3)
+    except Exception:  # noqa: BLE001
+        return 0.0
 
 
 def build_neighbourhood_kpis(

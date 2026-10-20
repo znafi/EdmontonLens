@@ -124,3 +124,16 @@ def test_transform_stop_delays_keys() -> None:
     gtfs = asyncio.run(extract_gtfs())
     out = transform_stop_delays(gtfs)
     assert {"delay_id", "stop_id", "route_id", "avg_delay_mins"}.issubset(out.columns)
+
+
+def test_transform_neighbourhoods_derives_area() -> None:
+    from backend.etl.transformers import transform_neighbourhoods
+
+    # ~0.01° x 0.01° at Edmonton's latitude is roughly 0.67 km².
+    square = {
+        "type": "Polygon",
+        "coordinates": [[[-113.5, 53.5], [-113.49, 53.5], [-113.49, 53.51], [-113.5, 53.51], [-113.5, 53.5]]],
+    }
+    fc = {"features": [{"properties": {"neighbourh": "1", "descriptiv": "Test"}, "geometry": square}]}
+    out = transform_neighbourhoods(fc)
+    assert 0.6 < out.loc[0, "area_sqkm"] < 0.75
