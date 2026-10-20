@@ -1,0 +1,30 @@
+checked_at,check_name,table_name,status,failing_rows,detail
+2026-10-20 19:18:30,duplicate_primary_key,delay_predictions,PASS,0,prediction_id
+2026-10-20 19:18:30,duplicate_primary_key,neighbourhood_kpis,PASS,0,kpi_id
+2026-10-20 19:18:30,duplicate_primary_key,neighbourhoods,PASS,0,neighbourhood_id
+2026-10-20 19:18:30,duplicate_primary_key,parks,PASS,0,park_id
+2026-10-20 19:18:30,duplicate_primary_key,transit_performance,PASS,0,perf_id
+2026-10-20 19:18:30,duplicate_primary_key,transit_routes,PASS,0,route_id
+2026-10-20 19:18:30,duplicate_primary_key,transit_stop_delays,PASS,0,delay_id
+2026-10-20 19:18:30,duplicate_primary_key,transit_stops,PASS,0,stop_id
+2026-10-20 19:18:30,duplicate_primary_key,waste_schedules,PASS,0,schedule_id
+2026-10-20 19:18:30,freshness_ingested_at,transit_stops,PASS,0,last ingested 2026-10-20 19:15 UTC
+2026-10-20 19:18:30,freshness_ingested_at,transit_performance,PASS,0,last ingested 2026-10-20 19:15 UTC
+2026-10-20 19:18:30,freshness_ingested_at,neighbourhood_kpis,PASS,0,last ingested 2026-10-20 19:15 UTC
+2026-10-20 19:18:30,freshness_latest_service_date,transit_performance,PASS,0,latest service_date 2026-10-20
+2026-10-20 19:18:30,null_key_or_required_column,neighbourhood_kpis,PASS,0,overall_score
+2026-10-20 19:18:30,null_key_or_required_column,neighbourhoods,PASS,0,boundary_geojson
+2026-10-20 19:18:30,null_key_or_required_column,parks,PASS,0,neighbourhood_id
+2026-10-20 19:18:30,null_key_or_required_column,parks,PASS,0,park_id
+2026-10-20 19:18:30,null_key_or_required_column,transit_performance,PASS,0,on_time_rate
+2026-10-20 19:18:30,null_key_or_required_column,transit_routes,PASS,0,route_id
+2026-10-20 19:18:30,null_key_or_required_column,transit_routes,PASS,0,route_long_name
+2026-10-20 19:18:30,null_key_or_required_column,transit_stops,PASS,0,neighbourhood_id
+2026-10-20 19:18:30,null_key_or_required_column,transit_stops,PASS,0,stop_id
+2026-10-20 19:18:30,null_key_or_required_column,transit_stops,PASS,0,stop_lat/stop_lon
+2026-10-20 19:18:30,orphan_delay_stop,transit_stop_delays,PASS,0,delay.stop_id missing from transit_stops
+2026-10-20 19:18:30,orphan_stop_no_neighbourhood,transit_stops,PASS,0,stop.neighbourhood_id missing from neighbourhoods
+2026-10-20 19:18:30,orphan_performance_route,transit_performance,PASS,0,performance.route_id missing from transit_routes
+2026-10-20 19:18:30,stop_outside_assigned_polygon,transit_stops,WARN,1012,stop not inside its assigned neighbourhood polygon (nearest-centroid fallback)
+2026-10-20 19:18:30,coordinates_out_of_range,parks,PASS,0,"outside lat 53.2-53.8, lon -114.1 to -113.1"
+2026-10-20 19:18:30,coordinates_out_of_range,transit_stops,PASS,0,"outside lat 53.2-53.8, lon -114.1 to -113.1"
