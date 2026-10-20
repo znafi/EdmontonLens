@@ -6,9 +6,12 @@ Four sheets on one dashboard. All fields below exist in the files in `data/`
 > **Status (2026-10-20):** published at https://public.tableau.com/app/profile/zawad.nafi/viz/EdmontonLens-NeighbourhoodsandTransit/Dashboard1
 > Built in Tableau Public web authoring from the files in `data/`: the map,
 > the scatter, the route trend, a data-quality table and a combined dashboard
-> with a "simulated data" banner. **Not yet in the published workbook:** the
-> On-Time Target parameter, the four calculated fields below, filters,
-> reference lines and the highlight action. They are the next iteration.
+> with a "simulated data" banner. Calculated field 2 (Transit-Park Quadrant,
+> a FIXED LOD) is implemented and colours the scatter. **Not yet in the
+> published workbook:** the On-Time Target parameter, calculated fields 1, 3
+> and 4, filters, reference lines and the highlight action.
+> The dashboard is also embedded in the web app at
+> https://edmonton-lens.vercel.app/dashboard
 
 ## Data sources
 
