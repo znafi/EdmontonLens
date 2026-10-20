@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bus, MessageSquare, MapPin, Trash2 } from "lucide-react";
+import { BarChart3, Bus, MessageSquare, MapPin, Trash2 } from "lucide-react";
 
 const FEATURES = [
   {
@@ -34,6 +34,14 @@ const FEATURES = [
     icon: MapPin,
     accent: "bg-orange-50 text-orange-600",
   },
+  {
+    href: "/dashboard",
+    title: "Dashboard",
+    description:
+      "A Tableau Public dashboard built from BigQuery: neighbourhood scores on a map, transit vs parks, and the data-quality checks.",
+    icon: BarChart3,
+    accent: "bg-violet-50 text-violet-600",
+  },
 ];
 
 export default function HomePage() {
@@ -67,7 +75,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {FEATURES.map((f) => {
           const Icon = f.icon;
           return (

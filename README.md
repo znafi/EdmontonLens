@@ -10,6 +10,8 @@ EdmontonLens is a personal project I built to make sense of the data the City of
 
 **Map** is an interactive neighbourhood map built with Leaflet.js, using the City's 2019 neighbourhood boundary polygons. Each neighbourhood is coloured by an overall score: the average of a park score (real park counts and areas) and a transit score (real stop counts plus the simulated on-time rate). Click any area for the breakdown, and a history chart once the pipeline has run on several days.
 
+**Dashboard** embeds the [Tableau Public dashboard](https://public.tableau.com/app/profile/zawad.nafi/viz/EdmontonLens-NeighbourhoodsandTransit/Dashboard1) built from the BigQuery views: neighbourhood scores on a map, transit vs park scores, the simulated route trend, and the data-quality checks.
+
 ## How it actually works
 
 There's a Python pipeline (`python -m backend.etl.pipeline`). It pulls transit routes, transit stops, parks and neighbourhood boundaries from the City's Socrata API concurrently, paging through every row. It cleans everything with Pandas, assigns stops and parks to neighbourhoods by point-in-polygon, loads the results, and retrains a random forest classifier on the (simulated) performance data.

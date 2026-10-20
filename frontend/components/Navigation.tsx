@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/waste", label: "Waste" },
   { href: "/ask", label: "Ask" },
   { href: "/neighbourhood", label: "Map" },
+  { href: "/dashboard", label: "Dashboard" },
 ];
 
 export default function Navigation() {
