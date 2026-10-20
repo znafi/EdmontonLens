@@ -8,6 +8,7 @@ credentials by falling back to a local PostgreSQL/SQLite database.
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -61,17 +62,23 @@ class Settings(BaseSettings):
     arcgis_base_url: str = "https://maps.edmonton.ca/arcgis/rest/services/"
 
     @field_validator(
-        "gemini_api_key", "edmonton_open_data_app_token", "gcp_project_id"
+        "gemini_api_key",
+        "edmonton_open_data_app_token",
+        "gcp_project_id",
+        "google_application_credentials",
     )
     @classmethod
     def _strip_secret(cls, v: str | None) -> str | None:
-        """Trim whitespace/newlines that often sneak in when pasting secrets.
+        """Trim pasted whitespace and treat ``.env.example`` placeholders as unset.
 
-        A trailing newline in a copied API key produces a 401 from Google, which
-        is exactly the kind of silent failure this guards against.
+        A trailing newline in a copied API key produces a 401 from Google, and a
+        placeholder like ``your-socrata-app-token`` makes Socrata return 403 for
+        every dataset — both silent failures this guards against.
         """
         if isinstance(v, str):
             v = v.strip()
+            if v.startswith(("your-", "path/to/")):
+                return None
             return v or None
         return v
 
@@ -87,8 +94,12 @@ class Settings(BaseSettings):
 
     @property
     def bigquery_enabled(self) -> bool:
-        """True when enough config is present to talk to BigQuery."""
-        return bool(self.gcp_project_id and self.google_application_credentials)
+        """True when a project is set and the credentials file actually exists."""
+        return bool(
+            self.gcp_project_id
+            and self.google_application_credentials
+            and Path(self.google_application_credentials).expanduser().is_file()
+        )
 
     @property
     def gemini_enabled(self) -> bool:
