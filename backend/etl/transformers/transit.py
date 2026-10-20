@@ -8,6 +8,7 @@ historical real-time arrivals in the static feed.
 
 from __future__ import annotations
 
+import zlib
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -77,7 +78,7 @@ def transform_performance(
         for route_id in route_ids:
             total_trips = int(trips_per_route.get(route_id, 10))
             # Base on-time rate per route, perturbed daily.
-            base = 0.70 + (hash(route_id) % 25) / 100.0
+            base = 0.70 + (zlib.crc32(str(route_id).encode()) % 25) / 100.0
             noise = rng.normal(0, 0.05)
             on_time_rate = float(np.clip(base + noise, 0.40, 0.99))
             delayed_trips = int(round(total_trips * (1 - on_time_rate)))

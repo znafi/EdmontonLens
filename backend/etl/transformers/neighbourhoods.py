@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import zlib
 from datetime import datetime
 from typing import Any
 
@@ -80,7 +81,7 @@ def build_neighbourhood_kpis(
         n_parks = int(park_counts.get(nid, 0))
         area = float(park_area.get(nid, 0.0))
         pickups = int(waste_days.get(nid, 0))
-        on_time = float(np.clip(city_on_time + (hash(nid) % 10 - 5) / 100.0, 0.4, 0.99))
+        on_time = float(np.clip(city_on_time + (zlib.crc32(str(nid).encode()) % 10 - 5) / 100.0, 0.4, 0.99))
 
         transit_score = float(np.clip(n_stops / 4.0 + on_time * 5, 0, 10))
         park_score = float(np.clip(n_parks * 0.8 + area / 5000.0, 0, 10))

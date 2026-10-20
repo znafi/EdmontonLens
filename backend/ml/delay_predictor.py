@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import os
+import zlib
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -150,7 +151,7 @@ def _heuristic_probability(route_id: str, hour: int) -> float:
     """Deterministic, dependency-free delay estimate (no scikit-learn needed)."""
     rush = hour in (7, 8, 16, 17, 18)
     return round(
-        min(0.95, 0.3 + (0.3 if rush else 0.0) + (hash(route_id) % 20) / 100.0), 4
+        min(0.95, 0.3 + (0.3 if rush else 0.0) + (zlib.crc32(str(route_id).encode()) % 20) / 100.0), 4
     )
 
 
